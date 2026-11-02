@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      COURSES_ROOT: /courses
+    volumes:
+      - ./data:/app/data
+      - /Volumes/ExternalHDMac:/courses:ro
+    restart: unless-stopped

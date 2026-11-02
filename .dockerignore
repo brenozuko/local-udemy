@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+data
+*.db
+*.db-shm
+*.db-wal
+.env*
+Dockerfile
+docker-compose.yml
+.dockerignore
+README.md
+tsconfig.tsbuildinfo
