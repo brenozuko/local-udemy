@@ -2,10 +2,11 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "1337:3000"
     environment:
-      COURSES_ROOT: /courses
+      # Same folder as .env.local (…/cursos). The volume is the whole drive.
+      COURSES_ROOT: /drive/cursos
     volumes:
       - ./data:/app/data
-      - /Volumes/ExternalHDMac:/courses:ro
+      - /Volumes/ExternalHDMac:/drive:ro
     restart: unless-stopped

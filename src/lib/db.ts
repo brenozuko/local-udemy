@@ -54,11 +54,11 @@ function createDb(): Database.Database {
   return db;
 }
 
-const globalForDb = globalThis as unknown as { __localUdemyDb?: Database.Database };
+const globalForDb = globalThis as unknown as { __conhecimentoLibertaDb?: Database.Database };
 
 export function getDb(): Database.Database {
-  if (!globalForDb.__localUdemyDb) {
-    globalForDb.__localUdemyDb = createDb();
+  if (!globalForDb.__conhecimentoLibertaDb) {
+    globalForDb.__conhecimentoLibertaDb = createDb();
   }
-  return globalForDb.__localUdemyDb;
+  return globalForDb.__conhecimentoLibertaDb;
 }
