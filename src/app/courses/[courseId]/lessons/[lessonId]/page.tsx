@@ -22,6 +22,7 @@ export default async function LessonPage({
     <main className="flex w-full flex-1 flex-col lg:flex-row">
       <div className="min-w-0 flex-1">
         <Player
+          key={lesson.id}
           lessonId={lesson.id}
           courseId={lesson.courseId}
           initialPosition={lesson.positionSeconds}

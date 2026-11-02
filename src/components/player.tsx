@@ -94,6 +94,15 @@ export function Player({
   useEffect(() => {
     return () => {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      // Stop playback on unmount so a lingering old instance (during a route
+      // transition) doesn't keep its audio going while the next lesson starts.
+      const video = videoRef.current;
+      if (video) {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      }
+      previewRef.current?.pause();
     };
   }, []);
 
