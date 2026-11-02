@@ -8,6 +8,7 @@ import {
   parseModuleFolder,
   titleFromJsonlText,
 } from "./parse";
+import { readMp4DurationSeconds } from "./duration";
 import { coursesRoot, DriveNotMountedError, isDriveMounted } from "./paths";
 
 const VIDEO_EXTENSIONS = new Set([".mp4", ".mkv", ".webm", ".mov"]);
@@ -72,7 +73,7 @@ export function scanCourses(): ScanResult {
       "INSERT INTO modules (course_id, folder_name, title, order_index, is_documents) VALUES (?, ?, ?, ?, ?)"
     );
     const insertLesson = db.prepare(
-      "INSERT INTO lessons (module_id, lesson_key, filename, title, tag, order_index, file_size) VALUES (?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO lessons (module_id, lesson_key, filename, title, tag, order_index, file_size, duration_seconds) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
     );
     const insertAttachment = db.prepare(
       "INSERT INTO attachments (module_id, attachment_key, filename, title, file_size) VALUES (?, ?, ?, ?, ?)"
@@ -180,9 +181,10 @@ export function scanCourses(): ScanResult {
           const lessonKey = path
             .join(courseEntry.name, moduleFolder.name, file.name)
             .normalize("NFC");
+          const absPath = path.join(moduleDir, file.name);
           let size: number | null = null;
           try {
-            size = fs.statSync(path.join(moduleDir, file.name)).size;
+            size = fs.statSync(absPath).size;
           } catch {}
           insertLesson.run(
             moduleId,
@@ -191,7 +193,8 @@ export function scanCourses(): ScanResult {
             title,
             entry?.tag ?? info.tag,
             info.order,
-            size
+            size,
+            readMp4DurationSeconds(absPath)
           );
           result.lessons++;
         }

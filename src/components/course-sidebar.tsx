@@ -1,19 +1,33 @@
 import Link from "next/link";
-import type { CourseDetail } from "@/lib/catalog";
+import type { CourseDetail, LessonRow } from "@/lib/catalog";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { FileText } from "lucide-react";
+import { FileText, MonitorPlay } from "lucide-react";
 import { WatchedToggle } from "@/components/watched-toggle";
 import { Progress } from "@/components/ui/progress";
+import { displayedSeconds, formatLessonDuration } from "@/lib/duration";
 
 function formatSize(bytes: number | null): string {
   if (!bytes) return "";
   const mb = bytes / (1024 * 1024);
   return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`;
+}
+
+function totalDuration(lessons: LessonRow[]): string | null {
+  let total = 0;
+  let any = false;
+  for (const lesson of lessons) {
+    const seconds = displayedSeconds(lesson.durationSeconds);
+    if (seconds > 0) {
+      total += seconds;
+      any = true;
+    }
+  }
+  return any ? formatLessonDuration(total, { alwaysHours: true }) : null;
 }
 
 export function CourseSidebar({
@@ -65,18 +79,11 @@ export function CourseSidebar({
       >
         {modules.map((module) => {
           const watched = module.lessons.filter((l) => l.watched).length;
-          const counts = [
+          const moduleDuration = totalDuration(module.lessons);
+          const lessonCount =
             module.lessons.length > 0
               ? `${watched}/${module.lessons.length} aulas`
-              : null,
-            module.attachments.length > 0
-              ? `${module.attachments.length} ${
-                  module.attachments.length === 1 ? "material" : "materiais"
-                }`
-              : null,
-          ]
-            .filter(Boolean)
-            .join(" · ");
+              : null;
           return (
             <AccordionItem
               key={module.id}
@@ -86,15 +93,23 @@ export function CourseSidebar({
               <AccordionTrigger className="cursor-pointer px-4 py-3 text-left text-sm font-semibold hover:bg-muted/50 hover:no-underline">
                 <div className="min-w-0 pr-2">
                   <span className="block">{module.title}</span>
-                  <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-                    {counts}
-                  </span>
+                  {(lessonCount || moduleDuration) && (
+                    <span className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs font-normal text-muted-foreground">
+                      {lessonCount && <span>{lessonCount}</span>}
+                      {moduleDuration && (
+                        <span className="tabular-nums">
+                          Tempo de duração: {moduleDuration}
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </div>
               </AccordionTrigger>
               <AccordionContent className="pb-0">
                 <ul>
                   {module.lessons.map((l) => {
                     const isCurrent = l.id === currentLessonId;
+                    const lessonDuration = formatLessonDuration(l.durationSeconds);
                     return (
                       <li
                         key={l.id}
@@ -109,15 +124,21 @@ export function CourseSidebar({
                         </span>
                         <Link
                           href={`/courses/${course.id}/lessons/${l.id}`}
-                          className="flex min-w-0 flex-1 items-start gap-2"
+                          className="flex min-w-0 flex-1 flex-col no-underline!"
                         >
                           <span
-                            className={`min-w-0 flex-1 ${
+                            className={
                               l.watched && !isCurrent ? "text-muted-foreground" : ""
-                            }`}
+                            }
                           >
                             {l.title}
                           </span>
+                          {lessonDuration && (
+                            <span className="mt-1 flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
+                              <MonitorPlay className="size-3.5 shrink-0" />
+                              {lessonDuration}
+                            </span>
+                          )}
                         </Link>
                       </li>
                     );
@@ -129,11 +150,6 @@ export function CourseSidebar({
                       module.lessons.length > 0 ? "border-t" : ""
                     }`}
                   >
-                    {module.lessons.length > 0 && (
-                      <h4 className="mb-1 pt-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                        Materiais
-                      </h4>
-                    )}
                     <ul>
                       {module.attachments.map((a) => (
                         <li key={a.id}>
@@ -141,14 +157,19 @@ export function CourseSidebar({
                             href={`/api/attachments/${a.id}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="flex items-center gap-2 rounded-md px-1 py-1.5 text-sm hover:bg-muted/50"
+                            className="block rounded-md px-1 py-2.5 text-sm hover:bg-muted/50"
                           >
-                            <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            <span className="min-w-0 flex-1 truncate">
-                              {a.filename}
+                            <span className="flex items-baseline gap-2">
+                              <span className="min-w-0 flex-1 truncate">
+                                {a.filename}
+                              </span>
+                              <span className="shrink-0 text-xs text-muted-foreground">
+                                {formatSize(a.fileSize)}
+                              </span>
                             </span>
-                            <span className="shrink-0 text-xs text-muted-foreground">
-                              {formatSize(a.fileSize)}
+                            <span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <FileText className="size-3.5 shrink-0" />
+                              Material
                             </span>
                           </a>
                         </li>

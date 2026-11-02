@@ -1,4 +1,6 @@
 import { getDb } from "./db";
+import { readMp4DurationSeconds } from "./duration";
+import { isDriveMounted, resolveWithinRoot } from "./paths";
 
 export interface CourseSummary {
   id: number;
@@ -57,8 +59,28 @@ export function listCourses(): CourseSummary[] {
     .all() as CourseSummary[];
 }
 
+function fillMissingDurations(db: ReturnType<typeof getDb>) {
+  if (!isDriveMounted()) return;
+  const missing = db
+    .prepare("SELECT id, lesson_key FROM lessons WHERE duration_seconds IS NULL")
+    .all() as Array<{ id: number; lesson_key: string }>;
+  if (missing.length === 0) return;
+
+  const update = db.prepare("UPDATE lessons SET duration_seconds = ? WHERE id = ?");
+  const write = db.transaction(() => {
+    for (const row of missing) {
+      const abs = resolveWithinRoot(row.lesson_key);
+      if (!abs) continue;
+      const seconds = readMp4DurationSeconds(abs);
+      if (seconds != null) update.run(seconds, row.id);
+    }
+  });
+  write();
+}
+
 export function getCourse(courseId: number): CourseDetail | null {
   const db = getDb();
+  fillMissingDurations(db);
   const course = db
     .prepare("SELECT id, slug, title FROM courses WHERE id = ?")
     .get(courseId) as { id: number; slug: string; title: string } | undefined;
@@ -80,7 +102,7 @@ export function getCourse(courseId: number): CourseDetail | null {
     `SELECT l.id, l.title, l.tag, l.order_index AS orderIndex, l.file_size AS fileSize,
             COALESCE(p.watched, 0) AS watched,
             COALESCE(p.position_seconds, 0) AS positionSeconds,
-            p.duration_seconds AS durationSeconds
+            COALESCE(l.duration_seconds, p.duration_seconds) AS durationSeconds
        FROM lessons l
        LEFT JOIN progress p ON p.lesson_key = l.lesson_key
       WHERE l.module_id = ? ORDER BY l.order_index`

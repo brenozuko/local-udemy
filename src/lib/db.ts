@@ -33,7 +33,8 @@ function createDb(): Database.Database {
       title TEXT NOT NULL,
       tag TEXT,
       order_index INTEGER NOT NULL,
-      file_size INTEGER
+      file_size INTEGER,
+      duration_seconds REAL
     );
     CREATE TABLE IF NOT EXISTS attachments (
       id INTEGER PRIMARY KEY,
@@ -51,7 +52,15 @@ function createDb(): Database.Database {
       updated_at TEXT
     );
   `);
+  ensureLessonDurationColumn(db);
   return db;
+}
+
+function ensureLessonDurationColumn(db: Database.Database) {
+  const cols = db.prepare("PRAGMA table_info(lessons)").all() as Array<{ name: string }>;
+  if (!cols.some((col) => col.name === "duration_seconds")) {
+    db.exec("ALTER TABLE lessons ADD COLUMN duration_seconds REAL");
+  }
 }
 
 const globalForDb = globalThis as unknown as { __conhecimentoLibertaDb?: Database.Database };
@@ -59,6 +68,8 @@ const globalForDb = globalThis as unknown as { __conhecimentoLibertaDb?: Databas
 export function getDb(): Database.Database {
   if (!globalForDb.__conhecimentoLibertaDb) {
     globalForDb.__conhecimentoLibertaDb = createDb();
+  } else {
+    ensureLessonDurationColumn(globalForDb.__conhecimentoLibertaDb);
   }
   return globalForDb.__conhecimentoLibertaDb;
 }
