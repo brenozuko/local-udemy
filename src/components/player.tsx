@@ -317,7 +317,7 @@ export function Player({
                   preload="metadata"
                   className="aspect-video w-40 object-cover"
                 />
-                <div className="py-0.5 text-center text-xs tabular-nums text-white">
+                <div className="py-0.5 text-center text-sm tabular-nums text-white">
                   {preview ? formatTime(preview.time) : "0:00"}
                 </div>
               </div>
@@ -371,7 +371,7 @@ export function Player({
                 />
               </div>
 
-              <span className="text-xs tabular-nums">
+              <span className="text-sm tabular-nums">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
 
@@ -380,7 +380,7 @@ export function Player({
                   <button
                     onClick={() => setSpeedMenuOpen((o) => !o)}
                     title="Velocidade de reprodução"
-                    className="rounded px-1.5 py-0.5 text-xs font-semibold hover:text-primary"
+                    className="rounded px-1.5 py-0.5 text-sm font-semibold hover:text-primary"
                   >
                     {speed}x
                   </button>
@@ -390,7 +390,7 @@ export function Player({
                         <button
                           key={s}
                           onClick={() => changeSpeed(s)}
-                          className={`block w-full px-3 py-1.5 text-left text-xs text-white hover:bg-white/20 ${
+                          className={`block w-full px-3 py-1.5 text-left text-sm text-white hover:bg-white/20 ${
                             s === speed ? "bg-white/10 font-semibold" : ""
                           }`}
                         >
@@ -418,7 +418,7 @@ export function Player({
         </div>
       )}
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-6">
         <Button variant="outline" size="sm" asChild disabled={!prevId}>
           {prevId ? (
             <Link href={`/courses/${courseId}/lessons/${prevId}`}>
