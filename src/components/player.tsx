@@ -64,6 +64,38 @@ export function Player({
   // Render the <video> only after mount: browser extensions (e.g. Video Speed
   // Controller) inject DOM next to video tags and break hydration otherwise.
   const [mounted, setMounted] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Seek-bar hover preview: a hidden second <video> on the same stream is
+  // seeked to the hovered time (the stream route supports Range requests).
+  const previewRef = useRef<HTMLVideoElement>(null);
+  const [preview, setPreview] = useState<{ time: number; x: number } | null>(
+    null
+  );
+
+  function onSeekBarHover(e: React.MouseEvent<HTMLInputElement>) {
+    if (!duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+    const time = ratio * duration;
+    setPreview({ time, x: e.clientX - rect.left });
+    const pv = previewRef.current;
+    if (pv && pv.readyState >= 1 && Math.abs(pv.currentTime - time) > 0.5) {
+      pv.currentTime = time;
+    }
+  }
+
+  const showControls = useCallback(() => {
+    setControlsVisible(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setControlsVisible(false), 2500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -232,8 +264,15 @@ export function Player({
       ) : (
         <div
           ref={containerRef}
+          onMouseMove={showControls}
+          onMouseLeave={() => {
+            if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+            setControlsVisible(false);
+          }}
           className={`group relative overflow-hidden bg-black ${
             fullscreen ? "flex h-full items-center" : "rounded-lg border"
+          } ${
+            playing && !controlsVisible && !speedMenuOpen ? "cursor-none" : ""
           }`}
         >
           {mounted ? (
@@ -257,19 +296,44 @@ export function Player({
           {/* Control bar */}
           <div
             className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-3 pb-2 pt-8 transition-opacity ${
-              playing ? "opacity-0 group-hover:opacity-100" : "opacity-100"
+              playing && !controlsVisible && !speedMenuOpen
+                ? "pointer-events-none opacity-0"
+                : "opacity-100"
             }`}
           >
-            <input
-              type="range"
-              min={0}
-              max={duration || 0}
-              step={0.1}
-              value={currentTime}
-              onChange={(e) => seek(Number(e.target.value))}
-              aria-label="Progresso do vídeo"
-              className="mb-1 block h-1 w-full cursor-pointer accent-primary"
-            />
+            <div className="relative">
+              <div
+                className={`pointer-events-none absolute bottom-4 z-10 -translate-x-1/2 overflow-hidden rounded-md border border-white/20 bg-black shadow-lg ${
+                  preview ? "visible" : "invisible"
+                }`}
+                style={{
+                  left: `clamp(80px, ${preview?.x ?? 0}px, calc(100% - 80px))`,
+                }}
+              >
+                <video
+                  ref={previewRef}
+                  src={`/api/stream/${lessonId}`}
+                  muted
+                  preload="metadata"
+                  className="aspect-video w-40 object-cover"
+                />
+                <div className="py-0.5 text-center text-xs tabular-nums text-white">
+                  {preview ? formatTime(preview.time) : "0:00"}
+                </div>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={duration || 0}
+                step={0.1}
+                value={currentTime}
+                onChange={(e) => seek(Number(e.target.value))}
+                onMouseMove={onSeekBarHover}
+                onMouseLeave={() => setPreview(null)}
+                aria-label="Progresso do vídeo"
+                className="mb-1 block h-1 w-full cursor-pointer accent-primary"
+              />
+            </div>
             <div className="flex items-center gap-3 text-white">
               <button
                 onClick={togglePlay}
